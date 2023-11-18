@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Private Chat</title>
+    <style>
+        /* Your CSS styles */
+
+    </style>
+</head>
+
+<body>
+    <div id="chat-container">
+        <div id="messages-container"></div>
+        <div id="input-container">
+            <label for="from-id">Your ID:</label>
+            <input type="text" id="from-id" placeholder="Enter your ID">
+            <br>
+            <label for="roomName">Room Name:</label>
+            <input type="text" id="roomName" placeholder="Enter Room Name">
+            <br>
+            <input type="text" id="message-input" placeholder="Type your message...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/3.1.9/signalr.min.js"></script>
+    <script>
+        const hubConnection = new signalR.HubConnectionBuilder()
+            .withUrl("https://localhost:7047/chat")
+            .build();
+
+        hubConnection.start().then(() => {
+            $(document).ready(function () {
+                const fromId = prompt("Enter your ID:");
+                const roomName = prompt("Enter Room Name:");
+
+                const userConnection = {
+                    Room: roomName,
+                    User: fromId
+                };
+
+                hubConnection.invoke("JoinRoom", userConnection);
+
+                $("#from-id").val(fromId);
+                $("#roomName").val(roomName);
+            });
+        });
+
+        function sendMessage() {
+            const message = $("#message-input").val();
+            const fromId = $("#from-id").val();
+            const roomName = $("#roomName").val();
+            const toId = "a";
+
+            hubConnection.invoke("SendMessage", message, fromId, toId, roomName);
+            $("#messages-container").append(`<div><strong>You:</strong> ${message}</div>`);
+            $("#message-input").val("");
+        }
+
+        hubConnection.on("ReceiveMessage", (message, fromId) => {
+            $("#messages-container").append(`<div>${fromId}: ${message}</div>`);
+        });
+    </script>
+</body>
+
+</html>

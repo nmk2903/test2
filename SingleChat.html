@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Private Chat</title>
+    <style>
+        #chat-container {
+            width: 400px;
+            margin: 20px auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+
+        #messages-container {
+            height: 200px;
+            overflow-y: scroll;
+            border-bottom: 1px solid #ccc;
+        }
+
+        #input-container {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="chat-container">
+        <div id="messages-container"></div>
+        <div id="input-container">
+            <label for="from-id">Your ID:</label>
+            <input type="text" id="from-id" placeholder="Enter your ID">
+            <br>
+            <label for="to-id">Recipient ID:</label>
+            <input type="text" id="to-id" placeholder="Enter recipient's ID">
+            <br>
+            <input type="text" id="message-input" placeholder="Type your message...">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/3.1.9/signalr.min.js"></script>
+    <script>
+        const hubConnection = new signalR.HubConnectionBuilder()
+            .withUrl("https://localhost:7047/chat")
+            .build();
+
+        hubConnection.start().then(() => {
+            $(document).ready(function () {
+                const fromId = prompt("Enter your ID:");
+                const toId = prompt("Enter recipient's ID:");
+
+                const userConnection = {
+                    Room: toId, 
+                    User: fromId
+                };
+
+                hubConnection.invoke("JoinRoomChat", userConnection);
+
+                $("#from-id").val(fromId);
+                $("#to-id").val(toId);
+            });
+        });
+
+        function sendMessage() {
+            const message = $("#message-input").val();
+            const fromId = $("#from-id").val();
+            const toId = $("#to-id").val();
+
+            hubConnection.invoke("SendMessage", message, fromId, toId, fromId+toId);
+            $("#messages-container").append(`<div><strong>You:</strong> ${message}</div>`);
+            $("#message-input").val("");
+        }
+
+        hubConnection.on("ReceiveMessage", (message, fromId) => {
+            $("#messages-container").append(`<div>${fromId}: ${message}</div>`);
+        });
+    </script>
+</body>
+
+</html>
